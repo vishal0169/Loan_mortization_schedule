@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMIPro — EMI Payment Schedule Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- jsPDF + autoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Loading Overlay ───────────────────────────────────── -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Generating Schedule…</p>
+    </div>
+  </div>
+
+  <!-- ── Sticky Header ─────────────────────────────────────── -->
+  <header class="hero-header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon"><i class="fas fa-rupee-sign"></i></div>
+        <div class="logo-text">
+          <span class="brand">EMI<span class="accent">Pro</span></span>
+          <span class="tagline">Smart Loan Planner</span>
+        </div>
+      </div>
+      <nav class="header-nav">
+        <a href="#calculator" class="nav-link">Calculator</a>
+        <a href="#charts"     class="nav-link">Charts</a>
+        <a href="#schedule"   class="nav-link">Schedule</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Hero Banner ───────────────────────────────────────── -->
+  <section class="hero-banner">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">Plan Your Loan <span class="gradient-text">Smarter</span></h1>
+      <p class="hero-subtitle">Generate detailed EMI schedules, visualize repayments, and download professional PDF statements instantly.</p>
+      <div class="hero-badges">
+        <span class="badge"><i class="fas fa-shield-alt"></i> Zero Interest Support</span>
+        <span class="badge"><i class="fas fa-file-pdf"></i> PDF Export</span>
+        <span class="badge"><i class="fas fa-chart-pie"></i> Visual Charts</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Main Content ──────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ── Calculator Form ─────────────────────────────────── -->
+    <section id="calculator" class="section">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-calculator"></i> Loan Details</h2>
+        <p class="section-subtitle">Fill in your loan information to generate a personalised EMI schedule</p>
+      </div>
+
+      <div class="form-card glass-card">
+        <form id="emiForm" novalidate>
+
+          <!-- Row 1: Full Name & EMI Debit Day -->
+          <div class="form-row two-col">
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input type="text" id="fullName" class="form-input"
+                       placeholder="e.g. Rajesh Kumar" autocomplete="name" />
+                <label for="fullName" class="floating-label">
+                  <i class="fas fa-user"></i>&nbsp; Full Name
+                </label>
+                <span class="input-icon"><i class="fas fa-user"></i></span>
+              </div>
+              <div class="error-msg" id="fullNameError"></div>
+            </div>
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input type="number" id="emiDay" class="form-input"
+                       placeholder="4" min="1" max="31" value="4" />
+                <label for="emiDay" class="floating-label">
+                  <i class="fas fa-calendar-day"></i>&nbsp; EMI Debit Day
+                </label>
+                <span class="input-icon"><i class="fas fa-calendar-day"></i></span>
+              </div>
+              <div class="error-msg" id="emiDayError"></div>
+              <div class="helper-text">Day of month for EMI debit (1–31)</div>
+            </div>
+
+          </div>
+
+          <!-- Loan Amount + Slider -->
+          <div class="form-group slider-group">
+            <div class="input-wrapper">
+              <input type="number" id="loanAmount" class="form-input"
+                     placeholder="e.g. 500000" min="1000" max="100000000" />
+              <label for="loanAmount" class="floating-label">
+                <i class="fas fa-rupee-sign"></i>&nbsp; Loan Amount (₹)
+              </label>
+              <span class="input-icon"><i class="fas fa-rupee-sign"></i></span>
+            </div>
+            <div class="error-msg" id="loanAmountError"></div>
+            <div class="slider-row">
+              <span class="slider-min">₹1K</span>
+              <input type="range" id="loanSlider" class="range-slider"
+                     min="1000" max="10000000" step="1000" value="500000" />
+              <span class="slider-max">₹1Cr</span>
+            </div>
+          </div>
+
+          <!-- Row 2: Interest Rate & Tenure -->
+          <div class="form-row two-col">
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input type="number" id="interestRate" class="form-input"
+                       placeholder="e.g. 8.5" min="0" max="100" step="0.01" />
+                <label for="interestRate" class="floating-label">
+                  <i class="fas fa-percent"></i>&nbsp; Interest Rate (% p.a.)
+                </label>
+                <span class="input-icon"><i class="fas fa-percent"></i></span>
+              </div>
+              <div class="error-msg" id="interestRateError"></div>
+              <div class="helper-text">Enter 0 for a zero-interest loan</div>
+            </div>
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input type="number" id="tenure" class="form-input"
+                       placeholder="e.g. 24" min="1" max="360" />
+                <label for="tenure" class="floating-label">
+                  <i class="fas fa-clock"></i>&nbsp; Tenure (Months)
+                </label>
+                <span class="input-icon"><i class="fas fa-clock"></i></span>
+              </div>
+              <div class="error-msg" id="tenureError"></div>
+            </div>
+
+          </div>
+
+          <!-- Tenure Slider -->
+          <div class="form-group slider-group tenure-slider-group">
+            <div class="slider-row">
+              <span class="slider-min">1M</span>
+              <input type="range" id="tenureSlider" class="range-slider"
+                     min="1" max="360" step="1" value="12" />
+              <span class="slider-max">360M</span>
+            </div>
+            <div class="tenure-labels">
+              <span>1 mo</span>
+              <span>1 yr</span>
+              <span>5 yrs</span>
+              <span>10 yrs</span>
+              <span>30 yrs</span>
+            </div>
+          </div>
+
+          <!-- Row 3: Start Month dropdown + Start Year dropdown -->
+          <div class="form-row two-col">
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <select id="startMonth" class="form-input form-select">
+                  <option value="">Select Month</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+                <label for="startMonth" class="floating-label floating-label-select">
+                  <i class="fas fa-calendar-alt"></i>&nbsp; Start Month
+                </label>
+              </div>
+              <div class="error-msg" id="startMonthError"></div>
+            </div>
+
+            <div class="form-group">
+              <div class="input-wrapper">
+                <!-- Year dropdown 2000–2050 — built by JS -->
+                <select id="startYear" class="form-input form-select">
+                  <option value="">Select Year</option>
+                </select>
+                <label for="startYear" class="floating-label floating-label-select">
+                  <i class="fas fa-calendar"></i>&nbsp; Start Year
+                </label>
+              </div>
+              <div class="error-msg" id="startYearError"></div>
+            </div>
+
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="generateBtn">
+              <span class="btn-icon"><i class="fas fa-chart-line"></i></span>
+              <span class="btn-text">Generate Schedule</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="resetBtn">
+              <span class="btn-icon"><i class="fas fa-redo"></i></span>
+              <span class="btn-text">Reset</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </section><!-- /#calculator -->
+
+    <!-- ── Summary Section ─────────────────────────────────── -->
+    <section id="summarySection" class="section hidden" aria-live="polite">
+
+      <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-info-circle"></i> Loan Summary</h2>
+      </div>
+
+      <!-- Zero-interest note (shown conditionally by JS) -->
+      <div id="zeroInterestBadge" class="zero-interest-badge" style="display:none;">
+        <i class="fas fa-check-circle"></i> Zero-Interest Loan — Equal principal instalments, no interest charged.
+      </div>
+
+      <!-- 4 summary cards -->
+      <div class="summary-grid">
+        <div class="summary-card card-emi">
+          <div class="card-icon"><i class="fas fa-rupee-sign"></i></div>
+          <div class="card-info">
+            <span class="card-label">Monthly EMI</span>
+            <span class="card-value" id="summaryEMI">₹0</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        <div class="summary-card card-principal">
+          <div class="card-icon"><i class="fas fa-hand-holding-usd"></i></div>
+          <div class="card-info">
+            <span class="card-label">Principal Amount</span>
+            <span class="card-value" id="summaryPrincipal">₹0</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        <div class="summary-card card-interest">
+          <div class="card-icon"><i class="fas fa-percentage"></i></div>
+          <div class="card-info">
+            <span class="card-label">Total Interest</span>
+            <span class="card-value" id="summaryInterest">₹0</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        <div class="summary-card card-total">
+          <div class="card-icon"><i class="fas fa-coins"></i></div>
+          <div class="card-info">
+            <span class="card-label">Total Payable</span>
+            <span class="card-value" id="summaryTotal">₹0</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+      </div>
+
+      <!-- Structured detail panel -->
+      <div class="loan-detail-panel">
+        <div class="panel-header">
+          <h3><i class="fas fa-file-invoice"></i> Borrower &amp; Loan Details</h3>
+        </div>
+        <div class="detail-grid" id="detailGrid">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-section glass-card">
+        <div class="progress-header">
+          <span class="progress-title"><i class="fas fa-tasks"></i> Repayment Progress</span>
+          <span class="progress-info" id="progressInfo">0 of 0 EMIs paid</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="repaymentProgress" style="width:0%;">
+            <span class="progress-label" id="progressPercent">0%</span>
+          </div>
+        </div>
+        <div class="progress-meta">
+          <span><i class="fas fa-check-circle"></i> Principal Paid: <strong id="paidPrincipal">₹0</strong></span>
+          <span><i class="fas fa-hourglass-half"></i> Remaining Balance: <strong id="remainingBalance">₹0</strong></span>
+        </div>
+      </div>
+
+    </section><!-- /#summarySection -->
+
+    <!-- ── Charts Section ──────────────────────────────────── -->
+    <section id="charts" class="section hidden">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-chart-pie"></i> Visual Insights</h2>
+        <p class="section-subtitle">Understand your loan breakdown and repayment trend at a glance</p>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card glass-card">
+          <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Principal vs Interest</h3>
+          <div class="chart-container" style="height:300px;">
+            <canvas id="pieChart"></canvas>
+          </div>
+          <div class="chart-legend" id="pieLegend"></div>
+        </div>
+        <div class="chart-card glass-card">
+          <h3 class="chart-title"><i class="fas fa-chart-line"></i> Balance Over Time</h3>
+          <div class="chart-container" style="height:300px;">
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section><!-- /#charts -->
+
+    <!-- ── Schedule Table ──────────────────────────────────── -->
+    <section id="schedule" class="section hidden">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-table"></i> EMI Schedule</h2>
+        <div class="schedule-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="tableSearch" placeholder="Search…" class="search-input" />
+          </div>
+          <button class="btn btn-print" id="printBtn">
+            <i class="fas fa-print"></i> Download / Print
+          </button>
+          <button class="btn btn-pdf" id="downloadPdfBtn">
+            <i class="fas fa-file-pdf"></i> Download PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrapper glass-card">
+        <div class="table-scroll">
+          <table class="emi-table" id="emiTable">
+            <thead>
+              <tr>
+                <th class="th-no">#</th>
+                <th class="th-date">Payment Date</th>
+                <th class="th-emi">EMI Amount</th>
+                <th class="th-principal">Principal</th>
+                <th class="th-interest">Interest</th>
+                <th class="th-balance">Balance</th>
+                <th class="th-status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="emiTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer" id="tableFooter"></div>
+      </div>
+    </section><!-- /#schedule -->
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p><i class="fas fa-rupee-sign"></i> <strong>EMIPro</strong> — Smart Loan Planner</p>
+      <p class="footer-note">Calculations are indicative. Please verify all figures with your lender before making financial decisions.</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
